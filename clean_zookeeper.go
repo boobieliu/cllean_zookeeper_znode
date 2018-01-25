@@ -3,11 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/samuel/go-zookeeper/zk"
 	"log"
 	"os"
 	"time"
 	"zookeeper/models"
+
+	"github.com/samuel/go-zookeeper/zk"
 )
 
 var (
@@ -32,7 +33,8 @@ func main() {
 		//var hosts = []string{"172.20.132.206:2181"}
 		var hosts = []string{models.IP() + ":" + models.PORT()}
 		var path = "/userPointLocks"
-		var flags = int32(0)
+		var flags = int32(-1)
+		//var flags int32 = zk.FlagEphemeral
 		timestamp := time.Now().UnixNano() / 1000000
 
 		conn, _, err := zk.Connect(hosts, time.Second*5)
@@ -60,7 +62,7 @@ func main() {
 				//获取第三级临时节点路径
 				ephemeral_path, _, err_children := conn.Children(znode_path)
 				if err_children != nil {
-					log.Fatalln("get children status wrong", err_children)
+					log.Println("get children status wrong", err_children)
 					return
 				}
 				log.Println(ephemeral_path)
@@ -69,7 +71,7 @@ func main() {
 					_, node_stat, err_get := conn.Get(ephemeral_znode_path)
 					log.Println(ephemeral_znode_path)
 					if err_get != nil {
-						log.Fatalln("Get ephemeral_znode failed!!")
+						log.Println("Get ephemeral_znode failed!!", err_get)
 						continue
 					}
 					//判断znode最后更新时间间隔是否相差10分钟(10 * 60000毫秒)，如果大于10分钟则删除该节点
@@ -78,8 +80,8 @@ func main() {
 						log.Println("deleting: ", ephemeral_znode_path)
 						err_delete := conn.Delete(ephemeral_znode_path, flags)
 						if err_delete != nil {
-							log.Fatalln("delete znode failed:", err_delete)
-							return
+							log.Println("delete znode failed:", err_delete)
+							continue
 						}
 					}
 				}
